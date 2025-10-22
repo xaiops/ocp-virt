@@ -27,6 +27,11 @@
   loop: "{{ vm_folders_with_vms.results | map(attribute='value') | flatten }}"
   when: item | length > 0
 
+- name: Initialize vms_for_plan_spec as list if it's a string
+  ansible.builtin.set_fact:
+    vms_for_plan_spec: []
+  when: vms_for_plan_spec is defined and vms_for_plan_spec is string
+
 - name: Prepare VMs for Plan spec
   ansible.builtin.set_fact:
     vms_for_plan_spec: "{{ vms_for_plan_spec | default([]) + [{'hooks': [], 'id': vm_id.vm}] }}"
