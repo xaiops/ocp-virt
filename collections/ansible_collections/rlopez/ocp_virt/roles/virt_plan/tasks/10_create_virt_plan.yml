@@ -27,9 +27,9 @@
   loop: "{{ vm_folders_with_vms.results | map(attribute='value') | flatten }}"
   when: item | length > 0
 
-- name: Initialize vms_for_plan_spec as empty list
+- name: Initialize vms_list for building plan spec
   ansible.builtin.set_fact:
-    vms_for_plan_spec: []
+    vms_list: []
 
 - name: Debug - Show user_selected_vm_names
   ansible.builtin.debug:
@@ -41,7 +41,7 @@
 
 - name: Prepare VMs for Plan spec
   ansible.builtin.set_fact:
-    vms_for_plan_spec: "{{ (vms_for_plan_spec or []) + [{'hooks': [], 'id': vm_id.vm}] }}"
+    vms_list: "{{ vms_list + [{'hooks': [], 'id': vm_id.vm}] }}"
   loop: "{{ vm_name_id_pairs }}"
   loop_control:
     loop_var: vm_id
@@ -49,7 +49,7 @@
 
 - name: Debug - Show VMs for Plan spec
   ansible.builtin.debug:
-    msg: "VMs for plan spec: {{ vms_for_plan_spec }}"
+    msg: "VMs for plan spec: {{ vms_list }}"
 
 - name: Fail if no VMs were selected
   ansible.builtin.fail:
@@ -58,7 +58,7 @@
       user_selected_vm_names: {{ user_selected_vm_names }}
       Available VMs: {{ vm_name_id_pairs | map(attribute='name') | list }}
       Please check that the VM name matches exactly (case-sensitive).
-  when: (vms_for_plan_spec | default([]) | length) == 0
+  when: (vms_list | length) == 0
 
 - name: Get information for the distributed port group 'segment-migrating-to-ocpvirt'
   vmware.vmware_rest.vcenter_network_info:
@@ -149,7 +149,7 @@
             name: vmware
             namespace: openshift-mtv
         targetNamespace: openshift-mtv
-        vms: "{{ vms_for_plan_spec | default([]) }}"
+        vms: "{{ vms_list }}"
         warm: false
 
 - name: Create a Migration manifest to run the Plan CR
