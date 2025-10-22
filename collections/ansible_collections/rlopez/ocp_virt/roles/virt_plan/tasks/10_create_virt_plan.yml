@@ -31,6 +31,14 @@
   ansible.builtin.set_fact:
     vms_for_plan_spec: []
 
+- name: Debug - Show user_selected_vm_names
+  ansible.builtin.debug:
+    msg: "User selected VM names: '{{ user_selected_vm_names }}' (split: {{ user_selected_vm_names.split('\n') }})"
+
+- name: Debug - Show vm_name_id_pairs
+  ansible.builtin.debug:
+    msg: "VM name/ID pairs: {{ vm_name_id_pairs }}"
+
 - name: Prepare VMs for Plan spec
   ansible.builtin.set_fact:
     vms_for_plan_spec: "{{ (vms_for_plan_spec or []) + [{'hooks': [], 'id': vm_id.vm}] }}"
@@ -42,6 +50,15 @@
 - name: Debug - Show VMs for Plan spec
   ansible.builtin.debug:
     msg: "VMs for plan spec: {{ vms_for_plan_spec }}"
+
+- name: Fail if no VMs were selected
+  ansible.builtin.fail:
+    msg: |
+      No VMs were matched for the plan. 
+      user_selected_vm_names: {{ user_selected_vm_names }}
+      Available VMs: {{ vm_name_id_pairs | map(attribute='name') | list }}
+      Please check that the VM name matches exactly (case-sensitive).
+  when: (vms_for_plan_spec | default([]) | length) == 0
 
 - name: Get information for the distributed port group 'segment-migrating-to-ocpvirt'
   vmware.vmware_rest.vcenter_network_info:
@@ -132,7 +149,7 @@
             name: vmware
             namespace: openshift-mtv
         targetNamespace: openshift-mtv
-        vms: "{{ vms_for_plan_spec }}"
+        vms: "{{ vms_for_plan_spec | default([]) }}"
         warm: false
 
 - name: Create a Migration manifest to run the Plan CR
