@@ -87,7 +87,7 @@
       spec:
         map:
           - destination:
-              storageClass: ocs-storagecluster-ceph-rbd
+              storageClass: ocs-external-storagecluster-ceph-rbd
             source:
               id: "{{ datastore_id }}"
         provider:
