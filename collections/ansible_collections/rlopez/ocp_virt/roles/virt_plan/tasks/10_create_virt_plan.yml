@@ -71,9 +71,11 @@
   vmware.vmware_rest.vcenter_datastore_info:
   register: all_the_datastores
 
-- name: Capture the datastore id
-  set_fact:
-    datastore_id: "{{ all_the_datastores.value[0].datastore }}"
+- name: Prepare datastore mappings for StorageMap
+  ansible.builtin.set_fact:
+    datastore_mappings: "{{ datastore_mappings | default([]) + [{'destination': {'storageClass': 'ocs-external-storagecluster-ceph-rbd'}, 'source': {'id': item.datastore}}] }}"
+  loop: "{{ all_the_datastores.value }}"
+  when: all_the_datastores.value | length > 0
 
 - name: Create or update a StorageMap
   redhat.openshift.k8s:
@@ -85,11 +87,7 @@
         name: "{{ storagemap_name }}"
         namespace: openshift-mtv
       spec:
-        map:
-          - destination:
-              storageClass: ocs-external-storagecluster-ceph-rbd
-            source:
-              id: "{{ datastore_id }}"
+        map: "{{ datastore_mappings }}"
         provider:
           destination:
             name: host
